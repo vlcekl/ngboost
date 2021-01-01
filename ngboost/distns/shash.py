@@ -69,5 +69,5 @@ class SHASH(RegressionDistn):
 
     @property
     def params(self):
-        return {"loc": self.loc, "scale": np.exp(self.logscale),
-                "nu": self.nu, "tau": np.exp(self.logtau)}
+        return {"loc": self.loc, "scale": self.scale,
+                "nu": self.nu, "tau": self.tau)}
