@@ -12,19 +12,20 @@ class LogNormalShiftLogScore(LogScore):
         return -self.dist.logpdf(Y)
 
     def d_score(self, Y):
+        dY = Y - self.loc
+        ldY = np.log(dY)
         D = np.zeros((self.scale.shape[0], 3))
-        ldY = np.log(Y - self.loc)
-        D[:, 0] = (self.mu - ldY) / (self.sigma ** 2)
+        D[:, 0] = (self.mu - ldY) / self.sigma**2
         D[:, 1] = 1 - ((self.mu - ldY) ** 2) / (self.sigma ** 2)
-        D[:, 2] = (ldY + self.sigma - self.mu) / ((Y - self.loc) * self.sigma ** 2)
+        D[:, 2] = ((self.mu - ldY) / self.sigma**2 - 1) / dY
         return D
 
-    def metric(self):
-        FI = np.zeros((self.scale.shape[0], 3, 3))
-        FI[:, 0, 0] = 1 / (self.sigma ** 2) + self.eps
-        FI[:, 1, 1] = 2
-        FI[:, 2, 2] = 1  #TODO: location
-        return FI
+    #def metric(self):
+    #    FI = np.zeros((self.scale.shape[0], 3, 3))
+    #    FI[:, 0, 0] = 1 / (self.sigma ** 2) + self.eps
+    #    FI[:, 1, 1] = 2
+    #    FI[:, 2, 2] = 1  #TODO: location ugly
+    #    return FI
 
 
 class LogNormalShift(RegressionDistn):
@@ -56,7 +57,7 @@ class LogNormalShift(RegressionDistn):
         return None
 
     def sample(self, m):
-        return np.array([self.dist.rvs() for i in range(m)])
+        return self.dist.rvs(size=m)
 
     def fit(Y):
         s, loc, scale = sp.stats.lognorm.fit(Y)

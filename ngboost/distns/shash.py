@@ -1,5 +1,6 @@
 """The NGBoost SHASH distribution and scores"""
 import numpy as np
+from scipy.stats import norm
 from scipy.optimize import minimize
 
 from ngboost.distns.distn import RegressionDistn
@@ -13,7 +14,7 @@ class SHASHLogScore(LogScore):
 
     def d_score(self, Y):
         D = np.zeros((self.scale.shape[0], 4))
-        D[:, 0] = (self.scale - lT) / (self.s ** 2)
+        D[:, 0] = #TODO 
         D[:, 1] = #TODO
         D[:, 2] = #TODO
         D[:, 3] = #TODO
@@ -38,10 +39,8 @@ class SHASH(RegressionDistn):
         self._params = params
         self.loc = params[0]
         self.scale = np.exp(params[1])
-        self.logscale = params[1]
         self.nu = params[2]
         self.tau = np.exp(params[3])
-        self.logtau = params[3]
 
     def __getattr__(self, name):
         if name in dir(self.dist):
@@ -49,14 +48,26 @@ class SHASH(RegressionDistn):
         return None
 
     def sample(self, m):
-        return np.array([self.dist.rvs() for i in range(m)])
+        # Sample standard normal
+        samples = np.random.randn(m)
+        # Transform to SHASH
+        samples = 
+        return samples
+    
+    def sample2(self, m):
+        # Sample uniform 
+        samples = np.random.rand(m)
+        # Transform to SHASH using inverse cummulative distribution
+        #samples = 
+        return samples
 
     @staticmethod
-    def loglik(Y, mu, sigma, nu, tau):
-        z = (Y - mu)/(sigma * tau)
-        c = np.cosh(tau * np.arcsinh(z) - nu)
-        r = np.sinh(tau * np.arcsinh(z) - nu)
-        loglik = -np.log(sigma) - 0.5*np.log(2*np.pi) - 0.5*np.log(1 + (z*z)) + np.log(c) - 0.5*(r*r)
+    def loglik(Y, loc, scale, nu, tau):
+        z = (Y - loc)/(scale * tau)
+        w = tau * np.arcsinh(z) - nu
+        c = np.cosh(w)
+        r = np.sinh(w)
+        loglik = -np.log(scale) - 0.5*np.log(2*np.pi) - 0.5*np.log(1 + z*z) + np.log(c) - 0.5*r*r
         return loglik
 
     def logpdf(self, Y):
