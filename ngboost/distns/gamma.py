@@ -1,13 +1,13 @@
 """The NGBoost LogNormalShift distribution and scores"""
 import numpy as np
 import scipy as sp
-from scipy.stats import lognorm as dist
+from scipy.stats import gamma as dist
 
 from ngboost.distns.distn import RegressionDistn
 from ngboost.scores import CRPScore, LogScore
 
 
-class LogNormalShiftLogScore(LogScore):
+class GammaLogScore(LogScore):
     def score(self, Y):
         return -self.dist.logpdf(Y)
 
@@ -28,7 +28,7 @@ class LogNormalShiftLogScore(LogScore):
     #    return FI
 
 
-class LogNormalShift(RegressionDistn):
+class GammaShift(RegressionDistn):
 
     """
     Implements the log-normal distribution with an extra shift 
