@@ -1,7 +1,8 @@
-"""The NGBoost LogNormalShift distribution and scores"""
+"""The NGBoost Gamma distribution and scores"""
 import numpy as np
 import scipy as sp
 from scipy.stats import gamma as dist
+from scipy.special import polygamma
 
 from ngboost.distns.distn import RegressionDistn
 from ngboost.scores import CRPScore, LogScore
@@ -12,23 +13,22 @@ class GammaLogScore(LogScore):
         return -self.dist.logpdf(Y)
 
     def d_score(self, Y):
-        dY = Y - self.loc
-        ldY = np.log(dY)
-        D = np.zeros((self.scale.shape[0], 3))
-        D[:, 0] = (self.mu - ldY) / self.sigma**2
-        D[:, 1] = 1 - ((self.mu - ldY) ** 2) / (self.sigma ** 2)
-        D[:, 2] = ((self.mu - ldY) / self.sigma**2 - 1) / dY
+        lY = np.log(Y)
+        D = np.zeros((self.scale.shape[0], 2))
+        D[:, 0] = self.shape*(polygamma(0, self.shape) + np.log(self.scale) - lY)
+        D[:, 1] = self.shape - Y/self.scale
         return D
 
-    #def metric(self):
-    #    FI = np.zeros((self.scale.shape[0], 3, 3))
-    #    FI[:, 0, 0] = 1 / (self.sigma ** 2) + self.eps
-    #    FI[:, 1, 1] = 2
-    #    FI[:, 2, 2] = 1  #TODO: location ugly
-    #    return FI
+    def metric(self):
+        FI = np.zeros((self.scale.shape[0], 2, 2))
+        FI[:, 0, 0] = self.shape*(polygamma(1, self.shape)
+        FI[:, 0, 1] = 
+        FI[:, 1, 0] = FI[:, 0, 1]
+        FI[:, 1, 1] = 2
+        return FI
 
 
-class GammaShift(RegressionDistn):
+class Gamma(RegressionDistn):
 
     """
     Implements the log-normal distribution with an extra shift 
@@ -39,16 +39,16 @@ class GammaShift(RegressionDistn):
     This distribution has both LogScore and CRPScore implemented.
     """
 
-    n_params = 3
-    scores = [LogNormalShiftLogScore]
+    n_params = 2
+    scores = [GammaLogScore]
 
     # pylint: disable=super-init-not-called
     def __init__(self, params):
         self._params = params
-        self.mu = params[0]             # mu of lognormal dist
-        self.sigma = np.exp(params[1])  # sigma of lognormal dist
-        self.loc = params[2]            # shift of the distribution origin
-        self.dist = dist(s=self.sigma, loc=self.loc, scale=np.exp(self.mu))
+        self.shape = np.exp(params[0])
+        self.scale = np.exp(params[1])
+        self.loc = 0.0
+        self.dist = dist(s=self.shape, scale=self.scale)
         self.eps = 1e-5
 
     def __getattr__(self, name):
@@ -60,10 +60,10 @@ class GammaShift(RegressionDistn):
         return self.dist.rvs(size=m)
 
     def fit(Y):
-        s, loc, scale = sp.stats.lognorm.fit(Y)
-        return np.array([np.log(scale), np.log(s), loc])
+        s, _, scale = dist.fit(Y, floc=self.loc)
+        return np.array([np.log(s), np.log(scale)])
 
     @property
     def params(self):
-        return {"s": self.sigma, "loc": self.loc, "scale": self.exp(self.mu)}
+        return {"s": self.shape, "scale": self.scale}
 
